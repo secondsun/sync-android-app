@@ -55,6 +55,110 @@ public class ListOfItemsActivity extends AppCompatActivity {
     private RecyclerView list;
     private FHSyncClient syncClient;
 
+    private FHSyncListener listener =new FHSyncListener() {
+
+        @Override
+        //On sync complete, list all the data and update the adapter
+        public void onSyncCompleted(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onSyncCompleted");
+            Log.d(TAG, "Sync message: " + pMessage.getMessage());
+
+            JSONObject allData = syncClient.list(DATA_ID);
+            Iterator<String> it = allData.keys();
+            TreeSet<ShoppingItem> itemsToSync = new TreeSet<ShoppingItem>();
+
+            while (it.hasNext()) {
+                String key = it.next();
+                JSONObject data = allData.getJSONObject(key);
+                JSONObject dataObj = data.getJSONObject("data");
+                String name = dataObj.optString("name", "NO name");
+                if (name.startsWith("N")) {
+                    Log.d(TAG, "Sync Complete Name : " + name);
+                }
+                String created = dataObj.optString("created", "no date");
+                ShoppingItem item = new ShoppingItem(key, name, created);
+                itemsToSync.add(item);
+            }
+
+            adapter.removeMissingItemsFrom(itemsToSync);
+            adapter.addNewItemsFrom(itemsToSync);
+
+            adapter.notifyDataSetChanged();
+        }
+
+        @Override
+        public void onLocalUpdateApplied(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onLocalUpdateApplied");
+
+            JSONObject allData = syncClient.list(DATA_ID);
+
+            Iterator<String> it = allData.keys();
+            TreeSet<ShoppingItem> itemsToSync = new TreeSet<ShoppingItem>();
+
+            while (it.hasNext()) {
+                String key = it.next();
+                JSONObject data = allData.getJSONObject(key);
+                JSONObject dataObj = data.getJSONObject("data");
+                String name = dataObj.optString("name", "NO name");
+                if (name.startsWith("N")) {
+                    Log.d(TAG, "Local Name : " + name);
+                }
+                String created = dataObj.optString("created", "no date");
+                ShoppingItem item = new ShoppingItem(key, name, created);
+                itemsToSync.add(item);
+            }
+
+            adapter.removeMissingItemsFrom(itemsToSync);
+            adapter.addNewItemsFrom(itemsToSync);
+
+            adapter.notifyDataSetChanged();
+        }
+
+        @Override
+        public void onDeltaReceived(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onDeltaReceived");
+            Log.d(TAG, "syncClient : " + pMessage.toString());
+        }
+
+        @Override
+        public void onUpdateOffline(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onUpdateOffline");
+        }
+
+        @Override
+        public void onSyncStarted(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onSyncStarted");
+        }
+
+        @Override
+        public void onSyncFailed(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onSyncFailed");
+        }
+
+        @Override
+        public void onRemoteUpdateFailed(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onRemoteUpdateFailed");
+
+        }
+
+        @Override
+        public void onRemoteUpdateApplied(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onRemoteUpdateApplied");
+
+        }
+
+        @Override
+        public void onCollisionDetected(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onCollisionDetected");
+        }
+
+        @Override
+        public void onClientStorageFailed(NotificationMessage pMessage) {
+            Log.d(TAG, "syncClient - onSyncFailed");
+        }
+
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -115,109 +219,7 @@ public class ListOfItemsActivity extends AppCompatActivity {
         config.setSyncFrequency(10);
 
         //initialize the sync client
-        syncClient.init(getApplicationContext(), config, new FHSyncListener() {
-
-            @Override
-            //On sync complete, list all the data and update the adapter
-            public void onSyncCompleted(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onSyncCompleted");
-                Log.d(TAG, "Sync message: " + pMessage.getMessage());
-
-                JSONObject allData = syncClient.list(DATA_ID);
-                Iterator<String> it = allData.keys();
-                TreeSet<ShoppingItem> itemsToSync = new TreeSet<ShoppingItem>();
-
-                while (it.hasNext()) {
-                    String key = it.next();
-                    JSONObject data = allData.getJSONObject(key);
-                    JSONObject dataObj = data.getJSONObject("data");
-                    String name = dataObj.optString("name", "NO name");
-                    if (name.startsWith("N")) {
-                        Log.d(TAG, "Sync Complete Name : " + name);
-                    }
-                    String created = dataObj.optString("created", "no date");
-                    ShoppingItem item = new ShoppingItem(key, name, created);
-                    itemsToSync.add(item);
-                }
-
-                adapter.removeMissingItemsFrom(itemsToSync);
-                adapter.addNewItemsFrom(itemsToSync);
-
-                adapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onLocalUpdateApplied(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onLocalUpdateApplied");
-
-                JSONObject allData = syncClient.list(DATA_ID);
-
-                Iterator<String> it = allData.keys();
-                TreeSet<ShoppingItem> itemsToSync = new TreeSet<ShoppingItem>();
-
-                while (it.hasNext()) {
-                    String key = it.next();
-                    JSONObject data = allData.getJSONObject(key);
-                    JSONObject dataObj = data.getJSONObject("data");
-                    String name = dataObj.optString("name", "NO name");
-                    if (name.startsWith("N")) {
-                        Log.d(TAG, "Local Name : " + name);
-                    }
-                    String created = dataObj.optString("created", "no date");
-                    ShoppingItem item = new ShoppingItem(key, name, created);
-                    itemsToSync.add(item);
-                }
-
-                adapter.removeMissingItemsFrom(itemsToSync);
-                adapter.addNewItemsFrom(itemsToSync);
-
-                adapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onDeltaReceived(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onDeltaReceived");
-                Log.d(TAG, "syncClient : " + pMessage.toString());
-            }
-
-            @Override
-            public void onUpdateOffline(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onUpdateOffline");
-            }
-
-            @Override
-            public void onSyncStarted(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onSyncStarted");
-            }
-
-            @Override
-            public void onSyncFailed(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onSyncFailed");
-            }
-
-            @Override
-            public void onRemoteUpdateFailed(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onRemoteUpdateFailed");
-
-            }
-
-            @Override
-            public void onRemoteUpdateApplied(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onRemoteUpdateApplied");
-
-            }
-
-            @Override
-            public void onCollisionDetected(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onCollisionDetected");
-            }
-
-            @Override
-            public void onClientStorageFailed(NotificationMessage pMessage) {
-                Log.d(TAG, "syncClient - onSyncFailed");
-            }
-
-        });
+        syncClient.init(getApplicationContext(), config, listener);
 
         // Start the sync process
         try {
@@ -274,6 +276,23 @@ public class ListOfItemsActivity extends AppCompatActivity {
             syncClient.delete(DATA_ID, item.getId());
         } catch (Exception e) {
             Log.e(TAG, "failed to delete data: " + item.getId(), e);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (syncClient != null) {
+            syncClient.pauseSync();
+        }
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (syncClient != null) {
+            syncClient.resumeSync(listener);
         }
     }
 
